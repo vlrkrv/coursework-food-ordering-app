@@ -1,0 +1,64 @@
+<%- include('partials/header') %>
+
+<h1>Ваш кошик</h1>
+
+<% if (cartItems.length === 0) { %>
+    <div style="text-align: center; padding: 50px; background: white; border-radius: 12px; margin-top: 20px;">
+        <h2 style="color: #666;">Кошик порожній 🛒</h2>
+        <p style="margin-bottom: 20px;">Час додати щось смачне!</p>
+        <a href="/menu" class="btn btn-primary">До меню</a>
+    </div>
+<% } else { %>
+    <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <table>
+            <thead>
+                <tr>
+                    <th>Страва</th>
+                    <th>Модифікатори</th>
+                    <th>К-сть</th>
+                    <th>Сума</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <% cartItems.forEach(item => { %>
+                    <tr>
+                        <td><strong><%= item.dish.name %></strong></td>
+                        <td>
+                            <% if (item.modifiers.length > 0) { %>
+                                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem; color: #666;">
+                                    <% item.modifiers.forEach(m => { %>
+                                        <li>+ <%= m.name %></li>
+                                    <% }) %>
+                                </ul>
+                            <% } else { %>
+                                <span style="color: #999;">—</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <form action="/cart/update" method="POST" style="display: flex; gap: 5px; align-items: center;">
+                                <input type="hidden" name="key" value="<%= item.key %>">
+                                <input type="number" name="quantity" value="<%= item.quantity %>" min="1" max="20" class="form-control" style="width: 70px; padding: 5px;">
+                                <button type="submit" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;">OK</button>
+                            </form>
+                        </td>
+                        <td style="font-weight: bold;"><%= item.lineTotal.toFixed(0) %> ₴</td>
+                        <td>
+                            <form action="/cart/remove" method="POST">
+                                <input type="hidden" name="key" value="<%= item.key %>">
+                                <button type="submit" class="btn btn-danger" style="padding: 5px 10px; font-size: 0.8rem;">Видалити</button>
+                            </form>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee;">
+            <h2 style="margin: 0;">Разом: <span style="color: var(--primary);"><%= total.toFixed(0) %> ₴</span></h2>
+            <a href="/orders/checkout" class="btn btn-success" style="font-size: 1.1rem; padding: 12px 30px;">Оформити замовлення</a>
+        </div>
+    </div>
+<% } %>
+
+<%- include('partials/footer') %>

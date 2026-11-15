@@ -1,0 +1,37 @@
+<%- include('partials/header') %>
+
+<h1>Мої замовлення</h1>
+
+<% if (orders.length === 0) { %>
+    <p style="margin-top: 20px; color: #666;">У вас ще немає замовлень. <a href="/menu" style="color: var(--primary);">Замовити зараз!</a></p>
+<% } else { %>
+    <div style="display: flex; flex-direction: column; gap: 20px; margin-top: 20px;">
+        <% orders.forEach(order => { %>
+            <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <h3>Замовлення #<%= order.id %></h3>
+                    <span class="status-badge status-<%= order.status %>"><%= order.status %></span>
+                </div>
+                <p style="color: #666; font-size: 0.9rem;">Час отримання: <strong><%= new Date(order.date).toLocaleDateString('uk-UA') %> о <%= order.start_time %></strong></p>
+                <ul style="list-style: none; padding: 0; margin: 15px 0; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                    <% order.items.forEach(item => { %>
+                        <li style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span><%= item.dish_name %> x <%= item.quantity %></span>
+                            <span><%= parseFloat(item.price * item.quantity).toFixed(0) %> ₴</span>
+                        </li>
+                    <% }) %>
+                </ul>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 1.2rem; font-weight: bold;">Разом: <%= parseFloat(order.total).toFixed(0) %> ₴</div>
+                    <% if (order.status === 'NEW') { %>
+                        <form action="/orders/<%= order.id %>/cancel" method="POST" onsubmit="return confirm('Ви впевнені, що хочете скасувати замовлення?');">
+                            <button type="submit" class="btn btn-danger">Скасувати</button>
+                        </form>
+                    <% } %>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+<% } %>
+
+<%- include('partials/footer') %>

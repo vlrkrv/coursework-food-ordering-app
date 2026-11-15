@@ -1,0 +1,45 @@
+<%- include('../partials/header') %>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Керування меню</h1>
+    <a href="/operator/orders" class="btn btn-secondary">← До замовлень</a>
+</div>
+
+<div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th>Категорія</th>
+                <th>Страва</th>
+                <th>Ціна</th>
+                <th>Статус</th>
+                <th>Дія</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% dishes.forEach(dish => { %>
+                <tr>
+                    <td><%= dish.category_name %></td>
+                    <td><strong><%= dish.name %></strong></td>
+                    <td><%= parseFloat(dish.price).toFixed(0) %> ₴</td>
+                    <td>
+                        <% if (dish.available) { %>
+                            <span style="color: #27ae60; font-weight: bold;">В наявності</span>
+                        <% } else { %>
+                            <span style="color: #e74c3c; font-weight: bold;">Знято з продажу</span>
+                        <% } %>
+                    </td>
+                    <td>
+                        <form action="/operator/menu/<%= dish.id %>/toggle" method="POST">
+                            <button type="submit" class="btn <%= dish.available ? 'btn-danger' : 'btn-success' %>" style="padding: 5px 10px; font-size: 0.8rem;">
+                                <%= dish.available ? 'Зняти з продажу' : 'Повернути в продаж' %>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Смачна їжа — Замовлення онлайн</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo">
+            <a href="/">Смачна їжа</a>
+        </div>
+        <nav class="main-nav">
+            <a href="/menu">Меню</a>
+            <% if (user) { %>
+                <a href="/cart">Кошик <span class="badge"><%= cartCount %></span></a>
+                <a href="/orders/my">Мої замовлення</a>
+                <% if (user.role === 'OPERATOR') { %>
+                    <a href="/operator/orders" class="btn-operator">Замовлення</a>
+                    <a href="/operator/menu" class="btn-operator">Меню</a>
+                <% } %>
+                <a href="/logout" class="btn-logout">Вихід (<%= user.name %>)</a>
+            <% } else { %>
+                <a href="/login">Вхід</a>
+                <a href="/register" class="btn-register">Реєстрація</a>
+            <% } %>
+        </nav>
+    </header>
+
+    <main class="container">
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div class="alert alert-success">Операцію успішно виконано!</div>
+        <% } %>

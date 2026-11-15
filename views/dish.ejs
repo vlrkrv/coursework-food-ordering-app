@@ -1,0 +1,46 @@
+<%- include('partials/header') %>
+
+<div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <a href="/menu" style="color: #999; text-decoration: none;">← Назад до меню</a>
+    
+    <img src="<%= dish.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80' %>" 
+         alt="<%= dish.name %>" 
+         style="width: 100%; height: 300px; object-fit: cover; border-radius: 12px; margin-top: 20px; margin-bottom: 20px;">
+
+    <h1 style="margin-top: 10px; color: var(--secondary);"><%= dish.name %></h1>
+    <p style="color: #666; margin-bottom: 10px;"><%= dish.description %></p>
+    <p style="font-size: 0.9rem; margin-bottom: 20px;"><strong>Склад:</strong> <%= dish.composition %></p>
+    <% if (dish.allergens && dish.allergens !== '-') { %>
+        <p style="font-size: 0.9rem; color: #e74c3c; margin-bottom: 20px;"><strong>Алергени:</strong> <%= dish.allergens %></p>
+    <% } %>
+
+    <form action="/cart/add" method="POST">
+        <input type="hidden" name="dishId" value="<%= dish.id %>">
+        
+        <% if (modifiers.length > 0) { %>
+            <h3 style="margin-bottom: 10px;">Додаткові опції:</h3>
+            <% modifiers.forEach(mod => { %>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; background: #f9f9f9; padding: 10px; border-radius: 6px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; width: 100%;">
+                        <input type="checkbox" name="modifiers" value="<%= mod.id %>">
+                        <%= mod.name %>
+                    </label>
+                    <span style="font-weight: bold; color: var(--primary);">+<%= parseFloat(mod.price).toFixed(0) %> ₴</span>
+                </div>
+            <% }) %>
+        <% } %>
+
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Кількість:</label>
+            <input type="number" name="quantity" value="1" min="1" max="10" class="form-control" style="width: 100px;">
+        </div>
+
+        <div style="font-size: 1.5rem; font-weight: bold; margin: 20px 0; color: var(--secondary);">
+            Ціна: <%= parseFloat(dish.price).toFixed(0) %> ₴ <span style="font-size: 1rem; color: #666; font-weight: normal;">(без модифікаторів)</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem;">Додати в кошик</button>
+    </form>
+</div>
+
+<%- include('partials/footer') %>

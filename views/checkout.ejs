@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+
+<div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <h1 style="margin-bottom: 20px;">Оформлення замовлення</h1>
+    
+    <form action="/orders/create" method="POST">
+        <input type="hidden" name="token" value="<%= token %>">
+        <div class="form-group">
+            <label style="font-size: 1.1rem; margin-bottom: 10px;">Оберіть час отримання:</label>
+            <select name="slotId" class="form-control" required style="padding: 15px; font-size: 1.1rem;">
+                <option value="">-- Оберіть інтервал --</option>
+                <% slots.forEach(slot => { %>
+                    <option value="<%= slot.id %>">
+                        <%= new Date(slot.date).toLocaleDateString('uk-UA') %> | <%= slot.start_time %> - <%= slot.end_time %>
+                    </option>
+                <% }) %>
+            </select>
+        </div>
+
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="font-size: 0.9rem; color: #666;">
+                <strong>Зверніть увагу:</strong> після підтвердження замовлення сума буде розрахована на сервері згідно з актуальними цінами.
+            </p>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.2rem;">Підтвердити замовлення</button>
+    </form>
+</div>
+
+<%- include('partials/footer') %>

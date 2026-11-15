@@ -1,0 +1,43 @@
+<%- include('../partials/header') %>
+
+<h1>Панель оператора</h1>
+
+<div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px; overflow-x: auto;">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Клієнт</th>
+                <th>Час</th>
+                <th>Сума</th>
+                <th>Статус</th>
+                <th>Дія</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% orders.forEach(order => { %>
+                <tr>
+                    <td>#<%= order.id %></td>
+                    <td><%= order.user_name %></td>
+                    <td><%= new Date(order.date).toLocaleDateString('uk-UA') %> | <%= order.start_time %></td>
+                    <td style="font-weight: bold;"><%= parseFloat(order.total).toFixed(0) %> ₴</td>
+                    <td><span class="status-badge status-<%= order.status %>"><%= order.status %></span></td>
+                    <td>
+                        <form action="/operator/orders/<%= order.id %>/status" method="POST" style="display: flex; gap: 5px;">
+                            <select name="status" class="form-control" style="width: auto; padding: 5px;">
+                                <option value="CONFIRMED" <%= order.status === 'CONFIRMED' ? 'selected' : '' %>>CONFIRMED</option>
+                                <option value="PREPARING" <%= order.status === 'PREPARING' ? 'selected' : '' %>>PREPARING</option>
+                                <option value="READY" <%= order.status === 'READY' ? 'selected' : '' %>>READY</option>
+                                <option value="COMPLETED" <%= order.status === 'COMPLETED' ? 'selected' : '' %>>COMPLETED</option>
+                                <option value="CANCELLED" <%= order.status === 'CANCELLED' ? 'selected' : '' %>>CANCELLED</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;">Змінити</button>
+                        </form>
+                    </td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+</div>
+
+<%- include('../partials/footer') %>
