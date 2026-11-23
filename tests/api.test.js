@@ -16,8 +16,13 @@ describe('Тестування вимог до вебзастосунку', () =
     // Беремо будь-яку доступну страву
     const dishRes = await pool.query('SELECT id FROM dishes WHERE available = true LIMIT 1');
     testDishId = dishRes.rows[0].id;
+
+    // Видаляємо можливий старий тестовий слот на завтра ('10:00') перед вставкою
+    await pool.query(`
+      DELETE FROM time_slots WHERE date = CURRENT_DATE + 1 AND start_time = '10:00'
+    `);
     
-    // створюєм тестовий слот на завтра (щоб він не був минулим)
+    // Створюємо тестовий слот на завтра (щоб він не був минулим)
     const slotRes = await pool.query(`
       INSERT INTO time_slots (date, start_time, end_time, max_orders) 
       VALUES (CURRENT_DATE + 1, '10:00', '10:30', 10) RETURNING id
@@ -51,13 +56,20 @@ describe('Тестування вимог до вебзастосунку', () =
 
   // FR-04 (частина 1: одночасні запити)
   test('FR-04: Одночасні запити на останнє місце', async () => {
+    await pool.query(`
+      DELETE FROM orders WHERE slot_id IN (
+        SELECT id FROM time_slots WHERE date = CURRENT_DATE + 1 AND start_time = '23:55'
+      )
+    `);
+    await pool.query(`
+      DELETE FROM time_slots WHERE date = CURRENT_DATE + 1 AND start_time = '23:55'
+    `);
+
     const slotRes = await pool.query(`
       INSERT INTO time_slots (date, start_time, end_time, max_orders) 
       VALUES (CURRENT_DATE + 1, '23:55', '23:59', 1) RETURNING id
     `);
     concurrentSlotId = slotRes.rows[0].id;
-    
-    await pool.query('DELETE FROM orders WHERE slot_id = $1', [concurrentSlotId]);
 
     const cart = [{ dishId: testDishId, quantity: 1, modifierIds: [] }];
     const results = await Promise.allSettled([
