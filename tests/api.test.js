@@ -9,15 +9,38 @@ describe('Тестування вимог до вебзастосунку', () =
   let testSlotId;
   let concurrentSlotId;
 
+  async function seedDemoSlots() {
+    const demoSlots = [
+      { dayOffset: 1, start: '12:00', end: '12:30', maxOrders: 5 },
+      { dayOffset: 1, start: '14:00', end: '14:30', maxOrders: 5 },
+      { dayOffset: 1, start: '18:00', end: '18:30', maxOrders: 5 },
+      { dayOffset: 2, start: '12:00', end: '12:30', maxOrders: 5 },
+      { dayOffset: 2, start: '15:00', end: '15:30', maxOrders: 5 },
+      { dayOffset: 2, start: '18:30', end: '19:00', maxOrders: 5 },
+    ];
+
+    for (const s of demoSlots) {
+      await pool.query(
+        `
+        INSERT INTO time_slots (date, start_time, end_time, max_orders)
+        VALUES (CURRENT_DATE + $1::int, $2, $3, $4)
+        ON CONFLICT (date, start_time)
+        DO UPDATE SET end_time = EXCLUDED.end_time, max_orders = EXCLUDED.max_orders
+        `,
+        [s.dayOffset, s.start, s.end, s.maxOrders]
+      );
+    }
+  }
+
   beforeAll(async () => {
-    // Очищаємо базу перед тестами
+    // Очищаємо замовлення та позиції перед тестами
     await pool.query('TRUNCATE order_item_modifiers, order_items, orders RESTART IDENTITY CASCADE');
     
     // Беремо будь-яку доступну страву
     const dishRes = await pool.query('SELECT id FROM dishes WHERE available = true LIMIT 1');
     testDishId = dishRes.rows[0].id;
 
-    // Видаляємо можливий старий тестовий слот на завтра ('10:00') перед вставкою
+    // Видаляємо можливий старий тестовий слот ('10:00') перед вставкою
     await pool.query(`
       DELETE FROM time_slots WHERE date = CURRENT_DATE + 1 AND start_time = '10:00'
     `);
@@ -31,6 +54,35 @@ describe('Тестування вимог до вебзастосунку', () =
   });
 
   afterAll(async () => {
+    // Прибираємо тестові слоти та пов'язані з ними тестові замовлення
+    await pool.query(`
+      DELETE FROM order_item_modifiers WHERE order_item_id IN (
+        SELECT id FROM order_items WHERE order_id IN (
+          SELECT id FROM orders WHERE slot_id IN (
+            SELECT id FROM time_slots WHERE start_time IN ('10:00', '23:55')
+          )
+        )
+      )
+    `);
+    await pool.query(`
+      DELETE FROM order_items WHERE order_id IN (
+        SELECT id FROM orders WHERE slot_id IN (
+          SELECT id FROM time_slots WHERE start_time IN ('10:00', '23:55')
+        )
+      )
+    `);
+    await pool.query(`
+      DELETE FROM orders WHERE slot_id IN (
+        SELECT id FROM time_slots WHERE start_time IN ('10:00', '23:55')
+      )
+    `);
+    await pool.query(`
+      DELETE FROM time_slots WHERE start_time IN ('10:00', '23:55')
+    `);
+
+    // Залишаємо нормальні демонстраційні слоти на 24.11 та 25.11 для показу на захисті
+    await seedDemoSlots();
+
     await pool.end();
   });
 

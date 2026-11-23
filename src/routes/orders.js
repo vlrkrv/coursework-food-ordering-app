@@ -5,7 +5,7 @@ const pool = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { createOrder } = require('../services/orderService');
 
-// Функція для отримання лише актуальних (не минулих) слотів
+// Функція для отримання лише актуальних слотів
 async function getAvailableSlots() {
   const slotsRes = await pool.query(
     `SELECT s.*, 
@@ -27,11 +27,14 @@ async function getAvailableSlots() {
 
   // Фільтруємо слоти
   return slotsRes.rows.filter(slot => {
-    const slotDate = new Date(slot.date).toISOString().split('T')[0];
+    const d = new Date(slot.date);
+    const slotDate = d.getFullYear() + '-' +
+                     (d.getMonth() + 1).toString().padStart(2, '0') + '-' +
+                     d.getDate().toString().padStart(2, '0');
     
     if (slotDate > today) return true; // Майбутні дні залишаємо
     if (slotDate === today) {
-      return slot.start_time > currentTime; // Сьогодні — тільки майбутні години
+      return slot.start_time > currentTime; // Сьогодні тільки майбутні години
     }
     return false; // Минулі дні відкидаємо
   });
