@@ -13,10 +13,15 @@ describe('Тестування вимог до вебзастосунку', () =
     // Очищаємо базу перед тестами
     await pool.query('TRUNCATE order_item_modifiers, order_items, orders RESTART IDENTITY CASCADE');
     
+    // Беремо будь-яку доступну страву
     const dishRes = await pool.query('SELECT id FROM dishes WHERE available = true LIMIT 1');
     testDishId = dishRes.rows[0].id;
     
-    const slotRes = await pool.query('SELECT id FROM time_slots WHERE date >= CURRENT_DATE LIMIT 1');
+    // створюєм тестовий слот на завтра (щоб він не був минулим)
+    const slotRes = await pool.query(`
+      INSERT INTO time_slots (date, start_time, end_time, max_orders) 
+      VALUES (CURRENT_DATE + 1, '10:00', '10:30', 10) RETURNING id
+    `);
     testSlotId = slotRes.rows[0].id;
   });
 
@@ -46,19 +51,15 @@ describe('Тестування вимог до вебзастосунку', () =
 
   // FR-04 (частина 1: одночасні запити)
   test('FR-04: Одночасні запити на останнє місце', async () => {
-    // Видаляємо старий слот для чистоти
-    await pool.query("DELETE FROM time_slots WHERE date = CURRENT_DATE + 1 AND start_time = '23:55'");
-
     const slotRes = await pool.query(`
       INSERT INTO time_slots (date, start_time, end_time, max_orders) 
       VALUES (CURRENT_DATE + 1, '23:55', '23:59', 1) RETURNING id
     `);
     concurrentSlotId = slotRes.rows[0].id;
-
+    
     await pool.query('DELETE FROM orders WHERE slot_id = $1', [concurrentSlotId]);
 
     const cart = [{ dishId: testDishId, quantity: 1, modifierIds: [] }];
-
     const results = await Promise.allSettled([
       createOrder(1, concurrentSlotId, cart),
       createOrder(1, concurrentSlotId, cart)
@@ -72,15 +73,30 @@ describe('Тестування вимог до вебзастосунку', () =
     expect(rejected[0].reason.message).toContain('місця зайняті');
   });
 
-  // FR-04 (частина 2: перевірка кількості в базі)
+  // FR-04 (частина 2)
   test('FR-04 (додатково): Після одночасних запитів у БД рівно 1 замовлення', async () => {
     const countRes = await pool.query('SELECT COUNT(*) FROM orders WHERE slot_id = $1', [concurrentSlotId]);
     expect(parseInt(countRes.rows[0].count)).toBe(1);
   });
 
-  // FR-05
+  // FR-05 (звичайний)
   test('FR-05: Без авторизації не можна скасувати замовлення', async () => {
     const res = await request(app).post('/orders/1/cancel');
+    expect(res.status).toBe(302);
+    expect(res.header.location).toBe('/login');
+  });
+
+  // FR-05 (захист від доступу до чужих замовлень)
+  test('FR-05 (додатково): Не можна скасувати чуже замовлення', async () => {
+    const orderRes = await pool.query(
+      'INSERT INTO orders (user_id, slot_id, total, status) VALUES (2, $1, 100, $2) RETURNING id',
+      [testSlotId, 'NEW']
+    );
+    const otherOrderId = orderRes.rows[0].id;
+
+    const res = await request(app).post(`/orders/${otherOrderId}/cancel`);
+    
+    // Очікуємо, що без входу буде редирект
     expect(res.status).toBe(302);
     expect(res.header.location).toBe('/login');
   });
@@ -112,6 +128,20 @@ describe('Тестування вимог до вебзастосунку', () =
     const dishRes = await pool.query('SELECT id, price FROM dishes WHERE available = true LIMIT 1');
     const dish = dishRes.rows[0];
     const order = await createOrder(1, testSlotId, [{ dishId: dish.id, quantity: 1, modifierIds: [] }]);
+    expect(parseFloat(order.total)).toBe(parseFloat(dish.price));
+  });
+
+  // NFR-03 (спроба підмінити ціну в запиті)
+  test('NFR-03: Сервер ігнорує фейкову ціну з запиту', async () => {
+    await pool.query("DELETE FROM orders WHERE slot_id = $1", [testSlotId]);
+    
+    const dishRes = await pool.query('SELECT id, price FROM dishes WHERE available = true LIMIT 1');
+    const dish = dishRes.rows[0];
+
+    // Передаємо фейкову ціну (1 грн)
+    const maliciousCart = [{ dishId: dish.id, quantity: 1, modifierIds: [], price: 1 }];
+    const order = await createOrder(1, testSlotId, maliciousCart);
+    
     expect(parseFloat(order.total)).toBe(parseFloat(dish.price));
   });
 });
