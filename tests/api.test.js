@@ -80,7 +80,6 @@ describe('Тестування вимог до вебзастосунку', () =
       DELETE FROM time_slots WHERE start_time IN ('10:00', '23:55')
     `);
 
-    // Залишаємо нормальні демонстраційні слоти на 24.11 та 25.11 для показу на захисті
     await seedDemoSlots();
 
     await pool.end();
